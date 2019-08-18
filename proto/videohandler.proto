@@ -9,6 +9,8 @@
  */
 syntax = "proto3";
 
+package videohandler;
+
 // -- SERVICE -- \\
 
 service VideoHandler {
