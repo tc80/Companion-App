@@ -1,0 +1,118 @@
+/*
+ * To generate, go out a directory and type:
+ *
+ * protoc -I proto/ --go_out=plugins=grpc:proto proto/videohandler.proto
+ *
+ * or type in the current directory:
+ *
+ * protoc -I . --go_out=plugins=grpc:. videohandler.proto
+ */
+syntax = "proto3";
+
+// -- SERVICE -- \\
+
+service VideoHandler {
+
+  // should there be a means of deleting a queued video?
+
+  /*
+   * Gets information on many videos
+   * based on the request
+   */
+  rpc GetVideos(VideoRequest) returns (VideoResponse) {}
+
+  /*
+   * Cancels an encoding video, sending
+   * it back to the encoding queue
+   */
+  rpc CancelEncoding(CancelEncodingRequest) returns (StatusResponse) {}
+
+  /*
+   * Updating the priority associated
+   * with a video in the encoding queue
+   */
+  rpc UpdatePriority(UpdatePriorityRequest) returns (StatusResponse) {}
+}
+
+// -- ENUMS -- \\
+
+/* Status of a request */
+enum Status {
+  FAILURE = 0;
+  SUCCESS = 1;
+}
+
+/* Types of videos */
+enum VideoType {
+  UNENCODED = 0;
+  ENCODING = 1;
+  ENCODED = 2;
+}
+
+// -- BASIC MESSAGES BASED ON VIDEO TYPES -- \\
+
+/* Video */
+message Video {
+  string title = 1; // Video title
+  uint32 time = 2;  // Video playing time (seconds)
+  uint64 size = 3;  // Video size (bytes)
+}
+
+/* Currently encoding video */
+message EncodingVideo {
+  Video video = 1;  // Respective video
+  uint32 tprog = 2; // Progress of encoding using time (seconds)
+  uint64 eprog = 3; // Progress of encoding using size (bytes)
+}
+
+/* Queued video for encoding */
+message QueuedVideo {
+  Video video = 1;     // Respective video
+  uint32 priority = 2; // Priority of video in encoding queue
+}
+
+// -- COMPLEX REQUESTS / RESPONSES -- \\
+
+/* Requests information on videos */
+message VideoRequest {
+  VideoType type = 1; // Video type
+  string query = 2;   // Query to determine which videos of this type
+}
+
+// note - MIGHT NEED TO FIX THIS LATER since i cant have a repeated oneof
+// maybe separate into different methods?
+
+/* Responds with information on many videos */
+message VideoResponse {
+  StatusResponse response = 1;         // Status
+  repeated QueuedVideo queued = 2;     // Could be many queued videos,
+  repeated EncodingVideo encoding = 3; // Many encoding videos,
+  repeated Video encoded = 4;          // Or many encoded videos
+}
+
+/*
+ * Cancels an encoding video, sending
+ * it back to the encoding queue
+ */
+message CancelEncodingRequest {
+  EncodingVideo video = 1; // Encoding video to cancel
+  uint32 priority = 2;     // Video priority in encoding queue
+}
+
+/*
+ * Updating the priority associated
+ * with a video in the encoding queue
+ */
+message UpdatePriorityRequest {
+  QueuedVideo video = 1; // Video in encoding queue
+  uint32 priority = 2;   // New priority for the video
+}
+
+/*
+ * Status response, containing
+ * an error if anything went wrong
+ */
+message StatusResponse {
+  Status status = 1; // Status
+  string error = 2;  // Optional error
+}
